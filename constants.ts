@@ -44,7 +44,7 @@ export const CATEGORIES_DATA: CategoryInfo[] = [
     name: 'Eye Care',
     subtitle: 'Cooling Balms & Optics',
     count: 2,
-    imageUrl: 'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&q=80&w=800',
+    imageUrl: '/src/assets/images/smart_glasses_eyecare_1791475598497.jpg',
     link: '#products'
   }
 ];

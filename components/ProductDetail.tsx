@@ -11,9 +11,10 @@ interface ProductDetailProps {
   product: Product;
   onBack: () => void;
   onAddToCart: (product: Product) => void;
+  onBuyNow?: (product: Product) => void;
 }
 
-const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToCart }) => {
+const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToCart, onBuyNow }) => {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [activeMediaTab, setActiveMediaTab] = useState<'photos' | 'videos'>('photos');
   const [copiedLink, setCopiedLink] = useState(false);
@@ -234,13 +235,26 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBack, onAddToC
                 </div>
              )}
 
-             <div className="flex flex-col gap-4">
+             <div className="flex flex-col gap-3">
+               {/* Primary: Direct One-Click Order Now */}
+               <button 
+                 onClick={() => onBuyNow ? onBuyNow(product) : onAddToCart(product)}
+                 disabled={product.inStock === false}
+                 className="w-full py-5 bg-[#2C2A26] text-[#F5F2EB] uppercase tracking-widest text-xs font-semibold hover:bg-black transition-all shadow-md disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer"
+               >
+                 <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                 </svg>
+                 {product.inStock !== false ? `⚡ Order Now (Cash on Delivery) — ${formatPKR(product.price)}` : 'Item Currently Unavailable'}
+               </button>
+
+               {/* Secondary: Add to Shopping Bag */}
                <button 
                  onClick={() => onAddToCart(product)}
                  disabled={product.inStock === false}
-                 className="w-full py-5 bg-[#2C2A26] text-[#F5F2EB] uppercase tracking-widest text-xs font-semibold hover:bg-[#433E38] transition-colors shadow-sm disabled:opacity-40"
+                 className="w-full py-3.5 bg-transparent border border-[#2C2A26] text-[#2C2A26] uppercase tracking-widest text-xs font-semibold hover:bg-[#2C2A26] hover:text-[#F5F2EB] transition-colors disabled:opacity-40 cursor-pointer"
                >
-                 {product.inStock !== false ? `Add to Shopping Bag — ${formatPKR(product.price)}` : 'Item Currently Unavailable'}
+                 Add to Shopping Bag
                </button>
                
                {/* Sharable Product Link Bar */}

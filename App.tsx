@@ -270,6 +270,15 @@ function App() {
     setIsCartOpen(true);
   };
 
+  const handleBuyNow = (product: Product) => {
+    setCartItems(prev => {
+      const exists = prev.some(item => item.id === product.id);
+      return exists ? prev : [...prev, product];
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setView({ type: 'checkout' });
+  };
+
   const removeFromCart = (index: number) => {
     setCartItems(prev => {
       const copy = [...prev];
@@ -368,6 +377,7 @@ function App() {
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             onAddToCart={addToCart}
+            onBuyNow={handleBuyNow}
           />
         )}
 

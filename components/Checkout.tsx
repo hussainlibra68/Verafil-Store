@@ -40,31 +40,57 @@ const Checkout: React.FC<CheckoutProps> = ({ items, onBack, onOrderSuccess }) =>
     e.preventDefault();
     setError(null);
 
-    if (!formData.firstName.trim() || !formData.email.trim() || !formData.phone.trim() || !formData.address.trim() || !formData.city.trim()) {
-      setError('Please fill in all required customer fields (Name, Email, Phone, Address, City).');
+    const firstName = formData.firstName.trim();
+    const phone = formData.phone.trim();
+    const address = formData.address.trim();
+    const city = formData.city.trim();
+
+    if (!firstName) {
+      setError('Please enter your full name or first name.');
+      return;
+    }
+
+    if (!phone) {
+      setError('Please enter your contact phone number so our courier can deliver.');
+      return;
+    }
+
+    if (!address) {
+      setError('Please provide your delivery address.');
+      return;
+    }
+
+    if (!city) {
+      setError('Please provide your city.');
       return;
     }
 
     if (items.length === 0) {
-      setError('Your shopping bag is empty.');
+      setError('Your shopping bag is empty. Please select a product before placing an order.');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const customerFullName = `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
-      const fullAddress = formData.apartment 
-        ? `${formData.address.trim()}, ${formData.apartment.trim()}`
-        : formData.address.trim();
+      const customerFullName = formData.lastName.trim() 
+        ? `${firstName} ${formData.lastName.trim()}`
+        : firstName;
+
+      const fullAddress = formData.apartment.trim()
+        ? `${address}, ${formData.apartment.trim()}`
+        : address;
+
+      const cleanPhoneDigits = phone.replace(/\D/g, '') || 'guest';
+      const finalEmail = formData.email.trim() || `${cleanPhoneDigits}@orders.verafil.store`;
 
       const orderPayload = {
         customerName: customerFullName,
-        customerEmail: formData.email.trim(),
-        customerPhone: formData.phone.trim(),
+        customerEmail: finalEmail,
+        customerPhone: phone,
         customerAddress: fullAddress,
-        city: formData.city.trim(),
-        postalCode: formData.postalCode.trim(),
-        orderNotes: formData.orderNotes.trim(),
+        city: city || 'Pakistan',
+        postalCode: formData.postalCode.trim() || '',
+        orderNotes: formData.orderNotes.trim() || '',
         items: items.map(i => ({
           id: i.id,
           name: i.name,
@@ -73,9 +99,9 @@ const Checkout: React.FC<CheckoutProps> = ({ items, onBack, onOrderSuccess }) =>
           imageUrl: i.imageUrl,
           category: i.category,
         })),
-        subtotal,
-        total,
-        paymentMethod: formData.paymentMethod,
+        subtotal: Math.max(0, Math.round(Number(subtotal) || 0)),
+        total: Math.max(0, Math.round(Number(total) || subtotal)),
+        paymentMethod: formData.paymentMethod || 'Cash on Delivery',
       };
 
       const savedOrder = await api.createOrder(orderPayload);
@@ -178,19 +204,18 @@ const Checkout: React.FC<CheckoutProps> = ({ items, onBack, onOrderSuccess }) =>
                 <h2 className="text-lg font-serif text-[#2C2A26] mb-4">Contact Information</h2>
                 <div className="space-y-4">
                   <input 
-                    type="email" 
+                    type="tel" 
                     required
-                    placeholder="Email address *" 
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="Contact Number / Mobile / WhatsApp *" 
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     className="w-full bg-white/70 border-b border-[#D6D1C7] p-3 text-xs text-[#2C2A26] placeholder-[#A8A29E] outline-none focus:border-[#2C2A26] transition-colors" 
                   />
                   <input 
-                    type="tel" 
-                    required
-                    placeholder="Contact Number / Phone Number (WhatsApp / Mobile) *" 
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    type="email" 
+                    placeholder="Email address (optional)" 
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="w-full bg-white/70 border-b border-[#D6D1C7] p-3 text-xs text-[#2C2A26] placeholder-[#A8A29E] outline-none focus:border-[#2C2A26] transition-colors" 
                   />
                 </div>
@@ -204,14 +229,14 @@ const Checkout: React.FC<CheckoutProps> = ({ items, onBack, onOrderSuccess }) =>
                     <input 
                       type="text" 
                       required
-                      placeholder="First name *" 
+                      placeholder="Full Name / First name *" 
                       value={formData.firstName}
                       onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                       className="w-full bg-white/70 border-b border-[#D6D1C7] p-3 text-xs text-[#2C2A26] placeholder-[#A8A29E] outline-none focus:border-[#2C2A26] transition-colors" 
                     />
                     <input 
                       type="text" 
-                      placeholder="Last name" 
+                      placeholder="Last name (optional)" 
                       value={formData.lastName}
                       onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                       className="w-full bg-white/70 border-b border-[#D6D1C7] p-3 text-xs text-[#2C2A26] placeholder-[#A8A29E] outline-none focus:border-[#2C2A26] transition-colors" 
@@ -220,7 +245,7 @@ const Checkout: React.FC<CheckoutProps> = ({ items, onBack, onOrderSuccess }) =>
                   <input 
                     type="text" 
                     required
-                    placeholder="Street Address, House/Flat No. *" 
+                    placeholder="Street Address, House/Flat No., Area *" 
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     className="w-full bg-white/70 border-b border-[#D6D1C7] p-3 text-xs text-[#2C2A26] placeholder-[#A8A29E] outline-none focus:border-[#2C2A26] transition-colors" 
@@ -236,14 +261,14 @@ const Checkout: React.FC<CheckoutProps> = ({ items, onBack, onOrderSuccess }) =>
                     <input 
                       type="text" 
                       required
-                      placeholder="City *" 
+                      placeholder="City (e.g. Lahore, Karachi, Islamabad) *" 
                       value={formData.city}
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                       className="w-full bg-white/70 border-b border-[#D6D1C7] p-3 text-xs text-[#2C2A26] placeholder-[#A8A29E] outline-none focus:border-[#2C2A26] transition-colors" 
                     />
                     <input 
                       type="text" 
-                      placeholder="Postal code" 
+                      placeholder="Postal code (optional)" 
                       value={formData.postalCode}
                       onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
                       className="w-full bg-white/70 border-b border-[#D6D1C7] p-3 text-xs text-[#2C2A26] placeholder-[#A8A29E] outline-none focus:border-[#2C2A26] transition-colors" 
@@ -314,19 +339,33 @@ const Checkout: React.FC<CheckoutProps> = ({ items, onBack, onOrderSuccess }) =>
             <h2 className="text-xl font-serif text-[#2C2A26] mb-8">Order Summary ({items.length} items)</h2>
             
             <div className="space-y-6 mb-8 max-h-96 overflow-y-auto pr-2">
-              {items.map((item, idx) => (
-                <div key={idx} className="flex gap-4 items-center">
-                  <div className="w-16 h-16 bg-[#EBE7DE] relative shrink-0 border border-[#D6D1C7]">
-                    <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-                    <span className="absolute -top-2 -right-2 w-5 h-5 bg-[#2C2A26] text-white text-[10px] flex items-center justify-center rounded-full font-semibold">1</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-serif text-[#2C2A26] text-sm truncate">{item.name}</h3>
-                    <p className="text-xs text-[#A8A29E] uppercase tracking-wider">{item.category}</p>
-                  </div>
-                  <span className="text-sm font-serif font-medium text-[#5D5A53] shrink-0">{formatPKR(item.price)}</span>
+              {items.length === 0 ? (
+                <div className="py-8 text-center bg-[#EBE7DE]/40 border border-dashed border-[#D6D1C7] p-6 rounded-xs">
+                  <p className="text-sm font-serif text-[#2C2A26] mb-2">Your shopping bag is empty.</p>
+                  <p className="text-xs text-[#706B63] mb-4">Select an item from our curated collection to place your order.</p>
+                  <button
+                    type="button"
+                    onClick={onBack}
+                    className="px-6 py-2.5 bg-[#2C2A26] text-[#F5F2EB] text-xs uppercase tracking-widest font-semibold hover:bg-black transition-colors"
+                  >
+                    Select a Product
+                  </button>
                 </div>
-              ))}
+              ) : (
+                items.map((item, idx) => (
+                  <div key={idx} className="flex gap-4 items-center">
+                    <div className="w-16 h-16 bg-[#EBE7DE] relative shrink-0 border border-[#D6D1C7]">
+                      <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                      <span className="absolute -top-2 -right-2 w-5 h-5 bg-[#2C2A26] text-white text-[10px] flex items-center justify-center rounded-full font-semibold">1</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-serif text-[#2C2A26] text-sm truncate">{item.name}</h3>
+                      <p className="text-xs text-[#A8A29E] uppercase tracking-wider">{item.category}</p>
+                    </div>
+                    <span className="text-sm font-serif font-medium text-[#5D5A53] shrink-0">{formatPKR(item.price)}</span>
+                  </div>
+                ))
+              )}
             </div>
 
             <div className="border-t border-[#D6D1C7] pt-6 space-y-2">

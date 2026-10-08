@@ -213,31 +213,48 @@ app.post('/api/orders', async (req, res) => {
       paymentMethod
     } = req.body;
 
-    if (!customerName || !customerEmail || !customerPhone || !customerAddress || !city || !items || !items.length) {
-      return res.status(400).json({ error: 'Missing required order fields (customer name, email, phone, address, city, items)' });
+    const rawPhone = customerPhone ? String(customerPhone).trim() : '';
+    const rawAddress = customerAddress ? String(customerAddress).trim() : '';
+
+    if (!rawPhone || !rawAddress) {
+      return res.status(400).json({ error: 'Contact phone number and delivery address are required to place an order.' });
     }
+
+    const itemsList = Array.isArray(items) && items.length > 0 ? items : (items ? [items] : []);
+    if (itemsList.length === 0) {
+      return res.status(400).json({ error: 'Your order must contain at least one item.' });
+    }
+
+    const cleanPhoneDigits = rawPhone.replace(/\D/g, '') || 'guest';
+    const finalName = (customerName && String(customerName).trim()) || 'Valued Customer';
+    const finalEmail = (customerEmail && String(customerEmail).trim()) || `${cleanPhoneDigits}@orders.verafil.store`;
+    const finalCity = (city && String(city).trim()) || 'Pakistan';
+    const finalSubtotal = Math.max(0, Math.round(Number(subtotal) || 0));
+    const finalTotal = Math.max(0, Math.round(Number(total) || finalSubtotal));
+    const finalPayment = (paymentMethod && String(paymentMethod).trim()) || 'Cash on Delivery';
 
     const orderId = `ORD-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
     const savedOrder = await createOrder({
       id: orderId,
-      customerName,
-      customerEmail,
-      customerPhone,
-      customerAddress,
-      city,
-      postalCode: postalCode || '',
-      orderNotes: orderNotes || '',
-      items,
-      subtotal: Number(subtotal),
-      total: Number(total),
-      paymentMethod: paymentMethod || 'Cash on Delivery',
+      customerName: finalName,
+      customerEmail: finalEmail,
+      customerPhone: rawPhone,
+      customerAddress: rawAddress,
+      city: finalCity,
+      postalCode: postalCode ? String(postalCode).trim() : '',
+      orderNotes: orderNotes ? String(orderNotes).trim() : '',
+      items: itemsList,
+      subtotal: finalSubtotal,
+      total: finalTotal,
+      paymentMethod: finalPayment,
     });
 
+    console.log(`[Order Placed] ${orderId} by ${finalName} (${rawPhone}) - Total: PKR ${finalTotal}`);
     res.status(201).json(savedOrder);
   } catch (error: any) {
     console.error('Failed to save order:', error);
-    res.status(500).json({ error: error.message || 'Failed to save order' });
+    res.status(500).json({ error: error?.message || 'Failed to save order to database' });
   }
 });
 

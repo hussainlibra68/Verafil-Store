@@ -33,7 +33,9 @@ export async function getAllOrders() {
     );
     return rows.map(r => ({
       ...r,
-      items: r.items ? JSON.parse(r.items) : [],
+      items: r.items 
+        ? (typeof r.items === 'string' ? (() => { try { return JSON.parse(r.items); } catch { return []; } })() : r.items)
+        : [],
     }));
   } catch (error) {
     console.error('Failed to get orders:', error);
@@ -43,19 +45,22 @@ export async function getAllOrders() {
 
 export async function createOrder(input: CreateOrderInput) {
   try {
+    const safeSubtotal = Math.max(0, Math.round(Number(input.subtotal) || 0));
+    const safeTotal = Math.max(0, Math.round(Number(input.total) || safeSubtotal));
+
     const [inserted] = await withDbRetry(() =>
       db.insert(orders).values({
         id: input.id,
-        customerName: input.customerName,
-        customerEmail: input.customerEmail,
-        customerPhone: input.customerPhone,
-        customerAddress: input.customerAddress,
-        city: input.city,
+        customerName: input.customerName || 'Customer',
+        customerEmail: input.customerEmail || 'orders@verafil.store',
+        customerPhone: input.customerPhone || '',
+        customerAddress: input.customerAddress || '',
+        city: input.city || 'Pakistan',
         postalCode: input.postalCode || '',
         orderNotes: input.orderNotes || '',
-        items: JSON.stringify(input.items),
-        subtotal: input.subtotal,
-        total: input.total,
+        items: typeof input.items === 'string' ? input.items : JSON.stringify(input.items || []),
+        subtotal: safeSubtotal,
+        total: safeTotal,
         status: 'Pending',
         paymentMethod: input.paymentMethod || 'Cash on Delivery',
       }).returning()
@@ -63,7 +68,9 @@ export async function createOrder(input: CreateOrderInput) {
 
     return {
       ...inserted,
-      items: inserted.items ? JSON.parse(inserted.items) : [],
+      items: inserted.items 
+        ? (typeof inserted.items === 'string' ? (() => { try { return JSON.parse(inserted.items); } catch { return []; } })() : inserted.items)
+        : [],
     };
   } catch (error) {
     console.error('Failed to create order:', error);
